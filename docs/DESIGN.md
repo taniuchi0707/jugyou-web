@@ -65,10 +65,13 @@ auth.uid() = user_id
 
 - パスワードは8文字以上(サーバー側でも確認する)。ハッシュ化は Supabase Auth が行う
 - ログイン失敗時は「メールアドレスまたはパスワードが違います」とだけ返す(登録済みのメールアドレスかどうかを知られないため)
+- Server Action は外部から直接呼べるため、すべての Server Action の先頭で `requireUser()` を呼ぶ
+- 他人の授業や存在しない授業の編集画面は 404 にする(存在するかどうかも知られないため)
+- 他人の授業の更新・削除は RLS によりエラーにならず 0 件になるので、更新した件数を確認する
 
 ## ディレクトリ構成
 
-Next.js 16(App Router、`src/` あり)。`★` はこれから作る予定のもの。
+Next.js 16(App Router、`src/` あり)。
 
 ```
 jugyou.web/
@@ -82,15 +85,21 @@ jugyou.web/
 │  │  ├─ login/              /login(page.tsx + login-form.tsx)
 │  │  ├─ signup/             /signup(page.tsx + signup-form.tsx)
 │  │  └─ courses/
-│  │     ├─ page.tsx         /courses(★ 一覧・追加・削除はこれから)
-│  │     └─ [id]/edit/page.tsx ★ /courses/[id]/edit
+│  │     ├─ page.tsx         /courses(一覧)
+│  │     ├─ add-course-form.tsx      授業の追加フォーム
+│  │     ├─ delete-course-button.tsx 削除ボタン(確認ダイアログ付き)
+│  │     └─ [id]/edit/       /courses/[id]/edit(page.tsx + edit-course-form.tsx)
 │  ├─ lib/
 │  │  ├─ supabase/
 │  │  │  ├─ client.ts        ブラウザ用の Supabase クライアント
 │  │  │  ├─ server.ts        サーバー用の Supabase クライアント
 │  │  │  └─ proxy.ts         ログイン状態の更新とページの振り分け
-│  │  ├─ actions/auth.ts     Server Action(新規登録・ログイン・ログアウト)
-│  │  └─ auth.ts             ログイン中のユーザーを取得する(getCurrentUser / requireUser)
+│  │  ├─ actions/
+│  │  │  ├─ auth.ts          Server Action(新規登録・ログイン・ログアウト)
+│  │  │  └─ courses.ts       Server Action(授業の追加・更新・削除)
+│  │  ├─ auth.ts             ログイン中のユーザーを取得する(getCurrentUser / requireUser)
+│  │  ├─ courses.ts          授業をDBから読む(サーバー専用)
+│  │  └─ course-rules.ts     授業名の上限などのルール(ブラウザ・サーバー共通)
 │  └─ proxy.ts               ページ表示前に必ず動く入口(旧middleware)
 ├─ supabase/migrations/      テーブル作成・RLSのSQL
 ├─ .env.example              環境変数の見本(Gitに入れる)
