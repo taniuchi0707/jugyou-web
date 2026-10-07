@@ -1,3 +1,5 @@
+import "server-only";
+
 import { isValidCourseId } from "@/lib/course-rules";
 import { createClient } from "@/lib/supabase/server";
 
