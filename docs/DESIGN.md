@@ -55,6 +55,17 @@ auth.uid() = user_id
 - ログイン済みで `/login`・`/signup` を開いたら `/courses` に移動する
 - Supabaseのメール認証(Confirm email)はMVPではオフにする
 
+## 認証・認可の仕組み
+
+三重のチェックで、ログインしていない人や他人がデータに触れないようにする。
+
+1. `src/proxy.ts`:ページを開く前に、未ログインなら `/login` へ移動させる(入口での振り分け)
+2. `requireUser()`:ログイン必須のページの先頭で、もう一度確認する
+3. RLS:DBが「自分の行」以外を返さない・変更させない
+
+- パスワードは8文字以上(サーバー側でも確認する)。ハッシュ化は Supabase Auth が行う
+- ログイン失敗時は「メールアドレスまたはパスワードが違います」とだけ返す(登録済みのメールアドレスかどうかを知られないため)
+
 ## ディレクトリ構成
 
 Next.js 16(App Router、`src/` あり)。`★` はこれから作る予定のもの。
@@ -65,18 +76,25 @@ jugyou.web/
 ├─ public/                   そのまま公開する静的ファイル(画像など)
 ├─ src/
 │  ├─ app/                   画面(フォルダ = URL)
-│  │  ├─ layout.tsx          全画面共通の枠(ヘッダーなど)
-│  │  ├─ page.tsx            /(ログイン状態に応じて振り分け)
+│  │  ├─ layout.tsx          全画面共通の枠(ヘッダー、ログアウトボタン)
+│  │  ├─ page.tsx            / (/courses へ移動するだけ)
 │  │  ├─ globals.css         全体のCSS(Tailwindの読み込み)
-│  │  ├─ login/page.tsx      ★ /login
-│  │  ├─ signup/page.tsx     ★ /signup
+│  │  ├─ login/              /login(page.tsx + login-form.tsx)
+│  │  ├─ signup/             /signup(page.tsx + signup-form.tsx)
 │  │  └─ courses/
-│  │     ├─ page.tsx         ★ /courses
+│  │     ├─ page.tsx         /courses(★ 一覧・追加・削除はこれから)
 │  │     └─ [id]/edit/page.tsx ★ /courses/[id]/edit
-│  ├─ lib/supabase/          ★ Supabaseに接続する処理
-│  └─ proxy.ts               ★ ページ表示前にログイン状態を確認する(旧middleware)
-├─ supabase/migrations/      ★ テーブル作成・RLSのSQL
-├─ .env.local                ★ SupabaseのURLやキー(Gitに入れない)
+│  ├─ lib/
+│  │  ├─ supabase/
+│  │  │  ├─ client.ts        ブラウザ用の Supabase クライアント
+│  │  │  ├─ server.ts        サーバー用の Supabase クライアント
+│  │  │  └─ proxy.ts         ログイン状態の更新とページの振り分け
+│  │  ├─ actions/auth.ts     Server Action(新規登録・ログイン・ログアウト)
+│  │  └─ auth.ts             ログイン中のユーザーを取得する(getCurrentUser / requireUser)
+│  └─ proxy.ts               ページ表示前に必ず動く入口(旧middleware)
+├─ supabase/migrations/      テーブル作成・RLSのSQL
+├─ .env.example              環境変数の見本(Gitに入れる)
+├─ .env.local                SupabaseのURLやキー(Gitに入れない)
 ├─ package.json              使うパッケージとコマンド
 ├─ tsconfig.json             TypeScriptの設定
 ├─ eslint.config.mjs         ESLintの設定
