@@ -1,3 +1,6 @@
+// このファイルをブラウザ側(Client Component)から読み込むと、ビルドがエラーになる
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
